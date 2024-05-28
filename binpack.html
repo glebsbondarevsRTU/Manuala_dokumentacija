@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Binpack Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Binpack file</h1>
+    <p>This code implemnts 3D bin packing in pure Python</p>
+    <p><strong>Author:</strong> MSC</p>
+    <p><strong>Date:</strong> 2017-08-16</p>
+    <p><strong>Version:</strong> binpack V1.1</p>
+
+    <h2>Import Statements</h2>
+    <pre><code>
+import time
+from package import Package
+import binpack_simple</code></pre>
+
+
+<h2>Binpack Method</h2>
+	<code>def binpack(packages, bin=None, iterlimit=5000):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>return binpack_simple.binpack(packages, bin, iterlimit)
+	</code></pre>
+    </div>
+	
+	<h2>Testing Method</h2>
+	<p>The <code>test()</code> method test multiplication.</p>
+	<code>def test(func):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>def test(func):
+    fd = open('testdata.txt')
+    vorher = 0
+    nachher = 0
+    start = time.time()
+    counter = 0
+    for line in fd:
+        counter += 1
+        if counter > 450:
+            break
+        packages = [Package(pack) for pack in line.strip().split()]
+        if not packages:
+            continue
+        bins, rest = func(packages)
+        if rest:
+            print "invalid data", rest, line
+        else:
+            vorher += len(packages)
+            nachher += len(bins)
+    print time.time() - start,
+    print vorher, nachher, float(nachher) / vorher * 100
+
+	</code></pre>
+    </div>

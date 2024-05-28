@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Binpack Simple Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Binpack Simple Documentation file:</h1>
+    <p>This code implemnts 3D bin packing in pure Python</p>
+    <p><strong>Author:</strong> MSC</p>
+    <p><strong>Date:</strong> 2017-08-14</p>
+    <p><strong>Version:</strong> binpack_simple V1.0</p>
+
+    <h2>Import Statements</h2>
+    <pre><code>import time
+import random
+from package import Packaget</code></pre>
+
+	<h2>Detailed file desrition:</h2>
+	<p>Bin packing in this context is calculating the best way to store a number of differently sized boxes in a
+number of fixed sized "bins". It is what usually happens in a Warehouse bevore shipping.</p>
+	<p>The Algorithm has a simple fit first approach, but can archive relative good results because it tries
+different rectangular rotations of the packages. Since the Algorithm can't interate over all possible
+combinations we use a heuristic approach.</p>
+	<p>For a few dozen packages it reaches adaequate runtime. Below are the results calculated about a set of
+500 real world packing problems.</p>
+	<p>The Python implementation is somewhat slower but can archive slightly better packing results on our
+datasets.</p>
+
+
+	<h2>PackStrip Method</h2>
+    <p>The <code>packstrip</code> method reates a Strip which fits into bin.</p>
+	<code>def packstrip(bin, p):</code>
+	
+	<p><strong>Paramaters:</strong>
+	<li>s - strip</li>
+	<li>r - rest</li>
+	<li>ss,sw,s1 - stripsize</li>
+	<li>sapp,rapp,ppop - speedup</li></p>
+	
+	<p><strong>Values:</strong>
+	<li>ss,sw,s1 is equal 0</li></p>
+	
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	s = []                
+    r = []                
+    ss = sw = sl = 0      
+    bs = bin.heigth       
+    sapp = s.append       
+    rapp = r.append       
+    ppop = p.pop           
+    while p and (ss <= bs):
+        n = ppop(0)
+        nh, nw, nl = n.size
+        if ss + nh <= bs:
+            ss += nh
+            sapp(n)
+            if nw > sw:
+                sw = nw
+            if nl > sl:
+                sl = nl
+        else:
+            rapp(n)</code></pre>
+    </div>
+	<p><strong>Returns:</strong>	Packages to be used in the strip, the dimensions of the strip as a 3-tuple
+        and a list of "left over" packages.</p>
+	<code>return s, (ss, sw, sl), r + p</code>
+	
+	<h2>Packlayer Method</h2>
+	<code>def packlayer(bin, packages):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>strips = []
+    layersize = 0
+    layerx = 0
+    layery = 0
+    binsize = bin.width
+    while packages:
+        strip, (sizex, stripsize, sizez), rest = packstrip(bin, packages)
+        if layersize + stripsize <= binsize:
+            packages = rest
+            if not strip:
+                # not able to pack anything
+                break
+            layersize += stripsize
+            layerx = max([sizex, layerx])
+            layery = max([sizez, layery])
+            strips.extend(strip)
+        else:
+            # Next Layer 
+            packages = strip + rest
+            break
+    return strips, (layerx, layersize, layery), packages
+	</code></pre>
+    </div>
+	
+	<h2>Packbin Method</h2>
+	<code>def packbin(bin, packages):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>packages.sort()
+    layers = []
+    contentheigth = 0
+    contentx = 0
+    contenty = 0
+    binsize = bin.length
+    while packages:
+        layer, (sizex, sizey, layersize), rest = packlayer(bin, packages)
+        if contentheigth + layersize <= binsize:
+            packages = rest
+            if not layer:
+                # not able to pack anything
+                break
+            contentheigth += layersize
+            contentx = max([contentx, sizex])
+            contenty = max([contenty, sizey])
+            layers.extend(layer)
+        else:
+            # Next Bin 
+            packages = layer + rest
+            break
+    return layers, (contentx, contenty, contentheigth), packages
+	</code></pre>
+    </div>
+	
+		<h2>Packit Method</h2>
+	<code>def packit(bin, originalpackages):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>peackages.sort()
+    layers = []
+    contentheigth = 0
+    contentx = 0
+    contenty = 0
+    binsize = bin.length
+    while packages:
+        layer, (sizex, sizey, layersize), rest = packlayer(bin, packages)
+        if contentheigth + layersize <= binsize:
+            packages = rest
+            if not layer:
+                # not able to pack anything
+                break
+            contentheigth += layersize
+            contentx = max([contentx, sizex])
+            contenty = max([contenty, sizey])
+            layers.extend(layer)
+        else:
+            # Next Bin 
+            packages = layer + rest
+            break
+    return layers, (contentx, contenty, contentheigth), packages
+	</code></pre>
+    </div>
+	
+	<h2>Product Method</h2>
+	<code>def product(*args, **kwds):</code>
+	<p>from itertools import permutations</p>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>def product(*args, **kwds):
+    pools = map(tuple, args) * kwds.get('repeat', 1)
+    result = [[]]
+    for pool in pools:
+        result = [x + [y] for x in result for y in pool]
+    for prod in result:
+        yield tuple(prod)
+	</code></pre>
+    </div>
+	
+	<h2>Permutations Method</h2>
+	<code>def permutations(iterable, r=None):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>    pool = tuple(iterable)
+    n = len(pool)
+    r = n if r is None else r
+    for indices in product(range(n), repeat=r):
+        if len(set(indices)) == r:
+            yield tuple(pool[i] for i in indices)
+	</code></pre>
+    </div>
+	
+	<h2>All permutations Helper Method</h2>
+	<code>def allpermutations_helper(permuted, todo, maxcounter, callback, bin, bestpack, counter):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code> if not todo:
+        return counter + callback(bin, permuted, bestpack)
+    else:
+        others = todo[1:]
+        thispackage = todo[0]
+        for dimensions in set(permutations((thispackage[0], thispackage[1], thispackage[2]))):
+            thispackage = Package(dimensions, nosort=True)
+            if thispackage in bin:
+                counter = allpermutations_helper(permuted + [thispackage], others, maxcounter, callback,
+                                                 bin, bestpack, counter)
+            if counter > maxcounter:
+                raise Timeout('more than %d iterations tries' % counter)
+        return counter
+
+	</code></pre>
+    </div>
+	
+	<h2>Trypack Method</h2>
+	<code>def trypack(bin, packages, bestpack):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code> bins, rest = packit(bin, packages)
+    if len(bins) < bestpack['bincount']:
+        bestpack['bincount'] = len(bins)
+        bestpack['bins'] = bins
+        bestpack['rest'] = rest
+    if bestpack['bincount'] < 2:
+        raise Timeout('optimal solution found')
+    return len(packages)
+	</code></pre>
+    </div>
+	
+	<h2>All permutations Method</h2>
+	<code>def allpermutations(todo, bin, iterlimit=5000):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code> random.seed(1)
+    random.shuffle(todo)
+    bestpack = dict(bincount=len(todo) + 1)
+    try:
+        # First try unpermuted
+        trypack(bin, todo, bestpack)
+        # now try permutations
+        allpermutations_helper([], todo, iterlimit, trypack, bin, bestpack, 0)
+    except Timeout:
+        pass
+    return bestpack['bins'], bestpack['rest']
+	</code></pre>
+    </div>
+	
+	<h2>Binpack Method</h2>
+    <p>The <code>binpack()</code> method to check if bin is None, if it is empty put standart value .</p>
+	<code>def binpack(packages, bin=None, iterlimit=5000):</code>
+	
+	<p><strong>Paramaters:</strong>
+	<li>Package - Packs a list of objects into a number of equal-sized bins.</li>
+	
+	<p><strong>Return:</strong></p>
+	<p>Returns a list of bins listing the packages within the 
+    bins and a list of packages which can't be packed because they are to big.</p>
+	
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	if not bin:
+        bin = Package("600x400x400")
+    return allpermutations(packages, bin, iterlimit)</code></pre>
+    </div>
+
+
+	<h2>Testing Method</h2>
+    <p>The <code>test()</code> method to test code and data.</p>
+	<code>def test():</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	fd = open('testdata.txt')
+    vorher = 0
+    nachher = 0
+    start = time.time()
+    for line in fd:
+        packages = [Package(pack) for pack in line.strip().split()]
+        if not packages:
+            continue
+        bins, rest = binpack(packages)
+        if rest:
+            print "invalid data", rest, line
+        else:
+            vorher += len(packages)
+            nachher += len(bins)
+    print time.time() - start,
+    print vorher, nachher, float(nachher) / vorher * 100)</code></pre>
+    </div>
+
+	

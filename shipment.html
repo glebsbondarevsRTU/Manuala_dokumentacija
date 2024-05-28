@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shipment File Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shipmen File</h1>
+    <p>Shipment breakdown - this defines an abstract shipment, with packages etc. and operations on it.
+             operations on it.</p>
+    <p><strong>Author:</strong> MSC</p>
+    <p><strong>Date:</strong> 2017-07-11</p>
+    <p><strong>Version:</strong> shipment V1.3</p>
+
+    <h2>Import Statements</h2>
+    <pre><code>import unittest
+import math
+import addressvalidation
+</code></pre>
+
+	<h2>AbstractPackstueck Class</h2>
+    <p>The <code>AbstractPackstueck</code> class defines a package, i.e. a shipping unit. Usually a pallet or a carton.</p>
+	<code>class AbstractPackstueck(object):
+	pass</code>
+	
+	<h2>AbstractItem Class</h2>
+    <p>The <code>AbstractItem</code> class defines a shipment item. Usually defined as article and quantity</p>
+	<code>class AbstractItem(object):</code>
+	
+	<p>It can consist of several packages, but this has not yet been implemented.</p>
+	<h3>__unicode__ Method</h3>
+    <code>def __unicode__(self):</code>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>
+		 def __unicode__(self):
+        if hasattr(self, 'liefertermin') and hasattr(self, 'artnr'):
+            return u"%d x %s, %s" % (self.menge, self.artnr, self.liefertermin)
+        if hasattr(self, 'artnr'):
+            return u"%d x %s" % (self.menge, self.artnr)
+        return u"%d x ?????" % (self.menge)
+		</code></pre>
+    </div>
+	
+	<h3>Anbruch Method</h3>
+    <code>def anbruch(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>True if this Item does not result in an export_package to be opened.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return (self.menge % self.produkte_pro_exportkarton) != 0
+		</code></pre>
+    </div>
+	
+	<h3>Volumen Method</h3>
+    <code>def volumen(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The volume of this item in m^3.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return self.menge * self.einzelvolumen
+		</code></pre>
+    </div>
+	
+	<h3>Gewicht Method</h3>
+    <code>def gewicht(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The weight of this item in g.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return self.menge * self.einzelgewicht
+		</code></pre>
+    </div>
+	
+	<h3>Max pack Stueck Gewicht Method</h3>
+    <code>def max_packstueck_gewicht(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The weigtht of the most heavy box for ths item.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>if self.menge >= self.produkte_pro_exportkarton:
+            return self.gewicht_pro_exportkarton
+        return (self.gewicht_pro_exportkarton / self.produkte_pro_exportkarton) * self.menge
+		</code></pre>
+    </div>
+	
+	<h3>Paletten Method</h3>
+    <code>def paletten(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The number of pallets of this Item.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return float(self.menge) / float(self.palettenfaktor)
+		</code></pre>
+    </div>
+	
+	<h3>Picks Method</h3>
+    <code>def picks(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The number storage locations to be accessed to get the item.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>picks = self.paletten
+        # round up
+        if picks != int(picks):
+            picks = int(picks + 1)
+        return picks
+		</code></pre>
+    </div>
+	
+	<h3>Export kartons Method</h3>
+    <code>def export_kartons(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The number of export packages needed to fullfill this item as a float.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return self.menge / float(self.produkte_pro_exportkarton)
+		</code></pre>
+    </div>
+	
+	<h3>Export karton gewichte Method</h3>
+    <code>def export_kartons(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The weights of the estimated number of packages which will be shipped in gramms.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>menge = self.menge
+        ret = []
+        while menge:
+            if menge > self.produkte_pro_exportkarton:
+                ret.append(self.gewicht_pro_exportkarton)
+                menge -= self.produkte_pro_exportkarton
+            else:
+                ret.append(menge * self.einzelgewicht)
+                menge = 0
+        return ret
+		</code></pre>
+    </div>
+
+	<h3>Packstuecke Method</h3>
+    <code>def packstuecke(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The absolute number of packages to fullfill this item as an integer.</p>
+	<p><strong>Description:</strong></p>
+	<p>This could take into account that packages can be bundled etc.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>    packstuecke = self.export_kartons
+        # round up
+        if packstuecke != int(packstuecke):
+            packstuecke = int(packstuecke + 1)
+        return int(packstuecke)
+		</code></pre>
+    </div>
+	
+	<h2>AbstractLieferung Class</h2>
+    <p>The <code>AbstractLieferung</code> class Defines a delivery. This is a unit consisting of items and packing units.</p>
+	<code>class AbstractLieferung(object):</code>
+	
+	<h3>Transportweg and Transportzeit Method</h3>
+    <code>def transportweg(self):</code>
+	<code>def transportzeit(self):</code>
+	<p><strong>Return Transportweg:</strong></p>
+	<p>The suggested method of shipping.</p>
+	<p><strong>Return Transportzeit:</strong></p>
+	<p>The number of days this is likely to take to be shipped to the client..</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>pass
+		</code></pre>
+    </div>
+	
+	<h3>Versandtermin Method</h3>
+    <code>def versandtermin(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The suggested date of shipping</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>try:
+            return self.liefertermin - self.transportzeit
+        except TypeError:
+            return self.liefertermin
+		</code></pre>
+    </div>
+	
+	<h3>Anbruch Method</h3>
+    <code>def anbruch(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>False if this Lieferung contains no items which need a export_package to be opened.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>for item in self.itemlist:
+            if item.anbruch:
+                return True
+        return False
+		</code></pre>
+    </div>
+	
+	<h3>Volumen Method</h3>
+    <code>def volumen(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The volume of all Items in this Lieferung in m^3.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return sum([x.volumen for x in self.itemlist])
+		</code></pre>
+    </div>
+	
+	<h3>Gewicht Method</h3>
+    <code>def gewicht(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The weight of all items in this delivery in g</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return sum([x.gewicht for x in self.itemlist])
+		</code></pre>
+    </div>
+	
+	<h3>Picks Method</h3>
+    <code>def picks(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The number of estimated picks for this Lieferung.</p>
+	<p>A pick is defined as accessing a position in the warehouse.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return sum([x.picks for x in self.itemlist])
+		</code></pre>
+    </div>
+	
+	<h3>Packstuecke Method</h3>
+    <code>def packstuecke(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The number of "Gripping units", meaning units to be taken out o the warehouse.
+        This is an integer.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>return sum([x.packstuecke for x in self.itemlist])
+		</code></pre>
+    </div>
+	
+	<h3>Export karton gewichte Method</h3>
+    <code>def export_karton_gewichte(self):</code>
+	<p><strong>Return:</strong></p>
+	<p>The weights of the estimated number of packages which will be shipped in gramms.</p>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>ret = [2,3,4,5]
+        for box in self.itemlist:
+            ret.extend(box.export_karton_gewichte)
+        return ret
+		</code></pre>
+    </div>
+	
+	<h3>Kep Method</h3>
+	<p>The <code>kep()</code> method Decides whether the shipment can be sent with a parcel service provider.</p>
+	<code>def kep(self)</code>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>if self.export_kartons > 10:
+            return False
+        if self.max_packstueck_gewicht > 31500:
+            return False
+        return True
+		</code></pre>
+    </div>
+	
+	<h2>Add Function</h2>
+	<p>The <code>add()</code> function takes two numbers as input and returns their sum.</p>
+	<code>def add(a, b):</code>
+	<p><strong>Paramaters:</strong>
+	<li>a - (float or int): The first number.</li>
+	<li>b - (float or int): The second number.</li></p>
+	<p><strong>Returns:</strong>
+	<p>float or int: The sum of the two input numbers.</p>
+	
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>result = a + b
+    return result
+		</code></pre>
+    </div>
+	
+	<p>Example usage:</p>
+	    <div class="example">
+        <p>Example:</p>
+        <pre><code>num1 = 5
+    num2 = 3
+    sum_result = add(num1, num2)
+    print(f"The sum of {num1} and {num2} is {sum_result}")
+		</code></pre>
+    </div>
+	
+	<h2>Simple Tests Class</h2>
+    <p>The <code>simpleTests()</code> class has very basic testing functionality.</p>
+	<code>class simpleTests(unittest.TestCase):</code>
+	
+	<h3>Test Simple Method</h3>
+	<p>The <code>test_simple()</code> method make basic plausibility tests.</p>
+	<code>def test_simple(self):</code>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>aitem = AbstractItem()
+        aitem.menge = 12
+        aitem.einzelgewicht = 3333
+        aitem.palettenfaktor = 70
+        aitem.produkte_pro_exportkarton = 2
+        aitem.einzelvolumen = (750 * 200 * 100) / 10 / 10 / 10
+        self.assertEqual(aitem.volumen, 180000)  # TODO: Unit? TOO BIG
+        self.assertEqual(aitem.gewicht, 39996)
+        self.assertEqual(aitem.anbruch, False)
+        self.assertAlmostEqual(aitem.paletten, 0.171428571429)
+        # print aitem.feinkommissionierung
+        aitem2 = AbstractItem()
+        aitem2.menge = 17
+        aitem2.einzelgewicht = 9123
+        aitem2.palettenfaktor = 30
+        aitem2.produkte_pro_exportkarton = 5
+        aitem2.einzelvolumen = (750 * 200 * 100) / 10 / 10 / 10
+
+        alieferung = AbstractLieferung()
+        alieferung.itemlist = [aitem]
+        self.assertEqual(alieferung.volumen, 180000)  # TODO: Unit? TOO BIG
+        self.assertEqual(alieferung.gewicht, 39996)
+        self.assertEqual(alieferung.anbruch, False)
+        self.assertAlmostEqual(alieferung.paletten, 0.171428571429)
+        # print alieferung.fix
+        # print alieferung.feinkommissionierung
+        # print alieferung.transportzeit
+        # print alieferung.versandtermin
+        # print alieferung.liefertermin
+        alieferung.itemlist = [aitem, aitem2]
+        self.assertEqual(alieferung.volumen, 435000)
+        self.assertEqual(alieferung.gewicht, 195087)
+        self.assertAlmostEqual(alieferung.paletten, 0.738095238095)
+        # print alieferung.transportweg
+        # print alieferung.fix
+		</code></pre>
+    </div>

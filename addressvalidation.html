@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Address Validation Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Address Validation File</h1>
+    <p>This code check the validity of addresses</p>
+    <p><strong>Author:</strong> MSC</p>
+    <p><strong>Date:</strong> 2016-09-02</p>
+    <p><strong>Version:</strong> package V1.2</p>
+
+    <h2>Import Statements</h2>
+    <pre><code>import unittest</code></pre>
+
+	<h2>Validate Method</h2>
+	<p>The <code>validate()</code> method validates an address and returns a possibly corrected address.</p>
+	<code>def validate(adr, servicelevel=1):</code>
+	
+	<p><strong>Paramaters:</strong>
+	<li>adr - should be a object conforming to the address protocol</li>
+	<li>servicelevel - can be an integer with the following values:
+	</li><p>
+	
+	<p><strong>Values for <code>servicelevel</code>:</strong>
+	<li>1 - generic validation, no money/effort should be spend on correction and suggestions</li>
+	<li>2 - TBD</li>
+	</p>
+	
+	<p><strong>Values for <code>status</code>:</strong>
+	<li>10invalid - address is for sure non deliverable in this form</li>
+	<li>20troubled - bounced before or is unlikely to be correct - possible alternatives are returned</li>
+	<li>30ok - likely to work</li>
+	<li>41ok - ikely to work but was corrected</li>
+	<li>40verified - we are sure it works</li>
+	</p>
+	
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>adr['land'] = adr['land'].strip()
+    adr['plz'] = adr['plz'].strip()
+	</code></pre>
+    </div>
+	
+	<p><strong>Return:</strong></p>
+	<p>returns (status, message, [corrected addresses and variants])</p>
+	
+		
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>if adr['land'] != 'IE' and not adr['plz']:
+        return ('10invalid', 'Postleitzahl fehlt', [adr])
+    if adr['land'] == 'DE' and len(adr.get('plz', '')) != 5:
+        return ('10invalid', 'Postleitzahl fehlerhaft', [adr])
+    return ('30ok', '', [adr])
+	</code></pre>
+    </div>
+	
+	
+	<h2>AddressvalidationTests Class</h2>
+	<p>The <code>AddressvalidationTests()</code> class Tests for the address validation facility.</p>
+	<code>class AddressvalidationTests(unittest.TestCase):</code>
+	
+	<h3>SetUp method</h3>
+	<p>The <code>setUp()</code> method Set up test address base.</p>
+	<code>class AddressvalidationTests(unittest.TestCase):</code>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>def setUp(self):
+        self.address = {'name1': 'HUDORA GmbH',
+                        'name2': 'Abt. Cybernetics',
+                        'strasse': 'Jägerwald 13',
+                        'land': 'DE',
+                        'plz': '42897',
+                        'ort': 'Remscheid',
+                        'tel': '+49 2191 60912 0',
+                        'fax': '+49 2191 60912 50',
+                        'mobil': '+49 175 00000xx',
+                        'email': 'nobody@hudora.de'}
+
+	</code></pre>
+    </div>
+	
+	<h3>Test_good_address method</h3>
+	<p>The <code>test_good_address()</code> method Test if correct addresses are considered correct.</p>
+	<code> def test_good_address(self):</code>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>self.assertEqual(validate(self.address)[0], '30ok')
+        self.assertEqual(validate(self.address)[1], '')
+	</code></pre>
+    </div>
+	
+	<h3>test_missing_zip method</h3>
+	<p>The <code>test_missing_zip()</code> method Test if correct addresses are considered correct.</p>
+	<code>def test_missing_zip(self):</code>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>self.address['plz'] = ''
+        self.assertEqual(validate(self.address)[0], '10invalid')
+	</code></pre>
+    </div>
+	
+	<h3>test_short_zip method</h3>
+	<p>The <code>test_short_zip()</code> method Test if correct addresses are considered correct.</p>
+	<code>def test_short_zip(self):</code>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code> self.address['plz'] = '123'
+        self.assertEqual(validate(self.address)[0], '10invalid')
+	</code></pre>
+    </div>
+	
+	<h3>test_long_zip method</h3>
+	<p>The <code>test_long_zip()</code> method Test if correct addresses are considered correct.</p>
+	<code>def test_long_zip(self):</code>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code> self.address['plz'] = '12345 Rade'
+        self.assertEqual(validate(self.address)[0], '10invalid')
+	</code></pre>
+    </div>

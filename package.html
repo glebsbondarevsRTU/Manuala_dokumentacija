@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Package Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Package Documentation file:</h1>
+    <p>This module contains shipping/cargo related calculations based on a unit of shipping (box, crate, package).</p>
+    <p><strong>Author:</strong> MSC</p>
+    <p><strong>Date:</strong> 2016-12-02</p>
+    <p><strong>Version:</strong> package V1.13</p>
+
+    <h2>Import Statements</h2>
+    <pre><code>import doctest
+import unittest
+import pyshipping.binpack
+import shipment</code></pre>
+
+    <h2>Package Class</h2>
+    <p>The <code>Package</code> class represents a package as used in cargo/shipping applications.</p>
+	<code>class Package(object):</code>
+	
+    <h3>__init__ Method</h3>
+    <p>The <code>__init__</code> method generates a new Package object.</p>
+    <code>def __init__(self, size, weight=0, nosort=False):</code>
+	
+    <p>The size can be given as a list of integers or a string where the sizes are separated by the letter 'x'.</p>
+	<code> 1. Package((300, 400, 500))
+        2. Package 500x400x300
+        3. Package('300x400x500')
+        4. Package 500x400x300
+	</code>
+    <div class="example">
+        <p>Code:</p>
+        <pre><code>
+		self.weight = weight
+        if "x" in size:
+            self.heigth, self.width, self.length = [int(x) for x in size.split('x')]
+        else:``
+            self.heigth, self.width, self.length = size
+        if not nosort:
+            
+            (self.heigth, self.width, self.length) = sorted((int(self.heigth), int(self.width),
+                                                             int(self.length)), reverse=True)
+        self.volume = self.heigth * self.width * self.length
+        self.size = (self.heigth, self.width, self.length)
+		</code></pre>
+    </div>
+	
+	<h3>get_gurtamss Method</h3>
+    <p>The <code>get_gurtamss</code> method is the circumference of the box plus the length - which is often used to
+            calculate shipping costs.</p>
+    <code>def _get_gurtmass(self):</code>
+	
+	<p>Package((100,110,120)).gurtmass 540</p>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	dimensions = (self.heigth, self.width, self.length)
+        maxdimension = max(dimensions)
+        otherdimensions = list(dimensions)
+        del otherdimensions[otherdimensions.index(maxdimension)]
+        return maxdimension + 2 * (sum(otherdimensions))
+        gurtmass = property(_get_gurtmass) </code></pre>
+    </div>
+
+
+	<h3>__getitem__ Method</h3>
+    <p>The <code>__getitem__</code> method coordinates can be accessed as if the object is a tuple.</p>
+    <code>def __getitem__(self, key):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	if key == 0:
+            return self.heigth
+        if key == 1:
+            return self.width
+        if key == 2:
+            return self.length
+        if isinstance(key, tuple):
+            return (self.heigth, self.width, self.length)[key[0]:key[1]]
+        if isinstance(key, slice):
+            return (self.heigth, self.width, self.length)[key]
+        raise IndexError</code></pre>
+    </div>
+	
+	<h3>__contains__ Method</h3>
+    <p>The <code>__contains__</code> method checks if on package fits within an other.</p>
+	<code>def __getitem__(self, key):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	return self[0] >= other[0] and self[1] >= other[1] and self[2] >= other[2]</code></pre>
+    </div>
+	
+	<h3>__eq__ Method</h3>
+    <p>The <code>__eq__</code> method package objects are equal if they have exactly the same dimensions.</p>
+	<code>def __eq__(self, other):</code>
+	<p>Permutations of the dimensions are considered equal:
+		Package((100,110,120)) == Package((100,110,120))
+        True
+        Package((120,110,100)) == Package((100,110,120))
+        True</p>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>return (self.heigth == other.heigth and self.width == other.width and self.length == other.length)
+</code></pre>
+    </div>
+	
+	<h3>__cmp__ Method</h3>
+    <p>The <code>__cmp__</code> method Enables to sort by Volume..</p>
+	<code>def __cmp__(self, other):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>return cmp(self.volume, other.volume)</code></pre>
+    </div>
+	
+	<h3>__mul__ Method</h3>
+    <p>The <code>__mul__</code> method package can be multiplied with an integer. This results in the Package beeing
+           stacked along the biggest side.</p>
+	<code>def __mul__(self, multiplicand):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>if self.weight:
+            new_weight = self.weight * multiplicand
+        else:
+            new_weight = None
+        return Package((self.heigth, self.width, self.length * multiplicand), new_weight)
+</code></pre>
+    </div>
+	
+	<h3>Others Method</h3>
+    <p>The <code>__add__</code> method.</p>
+	<code>def __add__(self, other):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>meineseiten = set([(self.heigth, self.width), (self.heigth, self.length),
+                           (self.width, self.length)])
+        otherseiten = set([(other.heigth, other.width), (other.heigth, other.length),
+                           (other.width, other.length)])
+        if not meineseiten.intersection(otherseiten):
+            raise ValueError("%s has no fitting sites to %s" % (self, other))
+        candidates = sorted(meineseiten.intersection(otherseiten), reverse=True)
+        stack_on = candidates[0]
+        mysides = [self.heigth, self.width, self.length]
+        mysides.remove(stack_on[0])
+        mysides.remove(stack_on[1])
+        othersides = [other.heigth, other.width, other.length]
+        othersides.remove(stack_on[0])
+        othersides.remove(stack_on[1])
+
+        if self.weight and other.weight:
+            new_weight = self.weight + other.weight
+        else:
+            new_weight = None
+
+        return Package((stack_on[0], stack_on[1], mysides[0] + othersides[0]), new_weight)
+	</code></pre>
+    </div>
+
+	<p>The <code>__str__</code> method.</p>
+	<code>def __str__(self):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>if self.weight:
+            return "%dx%dx%d %dg" % (self.heigth, self.width, self.length, self.weight)
+        else:
+            return "%dx%dx%d" % (self.heigth, self.width, self.length) </code></pre>
+    </div>
+	
+	<p>The <code>__repr__</code> method.</p>
+	<code>def __repr__(self):</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>if self.weight:
+            return "<Package %dx%dx%d %d>" % (self.heigth, self.width, self.length, self.weight)
+        else:
+            return "<Package %dx%dx%d>" % (self.heigth, self.width, self.length)</code></pre>
+    </div>
+	
+	<h2>buendelung Method</h3>
+    <p>The <code>buendelung</code> method try to bundle packages so that the belt dimensions are not exceeded.</p>
+	<code>def buendelung(kartons, maxweight=31000, maxgurtmass=3000):</code>
+	<p>Returns the bundled packages and the non-bundleable packages.</p>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>kartons = list(kartons)</code></pre>
+    </div>
+	
+	<h3>buendelung_moeglich Method</h3>
+    <p>The <code>buendelung_moeglich</code> method Decide whether it is possible to bundle the two boxes.</p>
+	<code>def buendelung_moeglich(box_a, box_b):</code>
+	<p>It can be bundled if the sum of the weights (if maintained)
+        is less than the maximum weight,
+        the belt size does not exceed the maximum belt size
+        and the maximum number of bundles has not already been reached.</p>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>	if kartons_im_buendel > MAXKARTONSIMBUENDEL:
+            return False
+
+        tmp = box_a + box_b
+        if tmp.weight > maxweight:
+            return False
+        elif tmp.gurtmass > maxgurtmass:
+            return False
+        return True
+
+    MAXKARTONSIMBUENDEL = 6
+    if not kartons:
+        return 0, [], kartons
+    gebuendelt = []
+    rest = []
+    lastcarton = kartons.pop(0)
+    buendel = False
+    buendelcounter = 0
+    kartons_im_buendel = 1
+    while kartons:
+        currentcarton = kartons.pop(0)</code></pre>
+    </div>
+	<p>check if 2 dimensions fit and bundling is possible</p>
+	<code>if currentcarton.hat_gleiche_seiten(lastcarton) and buendelung_moeglich(lastcarton, currentcarton):</code>
+	<p>new carton has the same size in two dimensions and the sum of both in the third</p>
+	<div class="example">
+        <p>Code:</p>
+		<pre><code>lastcarton = lastcarton + currentcarton
+            kartons_im_buendel += 1
+            if buendel is False:
+                # neues Bündel
+                buendelcounter += 1
+            buendel = True
+        else:</code></pre>
+	</div>
+	<p>different sizes, or too big</p>
+	<div class="example">
+        <p>Code:</p>
+		<pre><code>if buendel:
+                gebuendelt.append(lastcarton)
+            else:
+                rest.append(lastcarton)
+            kartons_im_buendel = 1
+            lastcarton = currentcarton
+            buendel = False
+    if buendel:
+        gebuendelt.append(lastcarton)
+    else:
+        rest.append(lastcarton)
+    return buendelcounter, gebuendelt, rest</code></pre>
+	</div>
+	
+	<h2>pack_in_bins Method</h2>
+    <p>The <code>pack_in_bins</code> method Implements Bin-Packing.</p>
+	<code>def pack_in_bins(kartons, versandkarton):</code>
+	<p>You provide it with a bin size and a list of Package Objects to be bined. Returns a list of lists
+    representing the bins with the binned Packages and a list of Packages too big for binning.</p>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>toobig, packagelist, bins, rest = [], [], [], []
+    for box in sorted(kartons, reverse=True):
+        if box not in versandkarton:
+            # passt eh nicht
+            toobig.append(box)
+        else:
+            packagelist.append(box)
+    if packagelist:
+        bins, rest = pyshipping.binpack.binpack(packagelist, versandkarton)
+    return bins, toobig + rest
+</code></pre>
+    </div>
+	
+	
+	
+		
+	<h2>PackageTests Class</h2>
+    <p>The <code>PackageTests</code> class is for simple tests for Package objects.</p>
+	<code>class PackageTests(unittest.TestCase):</code>
+	<p>test_init Tests __init__() implementation.</p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>def test_init(self):
+        sertEqual(Package((100, 100, 200)), Package(('100', '200', '100')))
+        self.assertEqual(Package((100.0, 200.0, 200.0)), Package('200x200x100'))
+		</code></pre>
+    </div>
+	
+	<p><strong>test_eq Tests __eq__() implementation.</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>def test_eq(self):
+        self.assertEqual(Package((200, 100, 200)), Package(('200', '100', '200')))
+        self.assertNotEqual(Package((200, 200, 100)), Package(('100', '100', '200')))
+		</code></pre>
+    </div>
+	
+	<p><strong>test_volume sTests volume calculation</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>    def test_volume(self):
+        self.assertEqual(4000000, Package((100, 200, 200)).volume)
+        self.assertEqual(8000, Package((20, 20, 20)).volume)
+		</code></pre>
+    </div>
+	
+	<p><strong>test+Str - Test __unicode__ implementation.</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code> def test_str(self):
+        self.assertEqual('200x200x100', Package((100, 200, 200)).__str__())
+        self.assertEqual('200x200x100', Package('100x200x200').__str__())
+		</code></pre>
+    </div>
+	
+	<p><strong>test_repr Test __repr__ implementation.</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>def test_repr(self):
+        self.assertEqual('<Package 200x200x100 44>', Package((100, 200, 200), 44).__repr__())
+		</code></pre>
+    </div>
+	
+	<p><strong>test_gurtmass Test gurtmass calculation.</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>    def test_gurtmass(self):
+        self.assertEqual(800, Package((100, 200, 200)).gurtmass)
+        self.assertEqual(900, Package((100, 200, 300)).gurtmass)
+        self.assertEqual(1000, Package((200, 200, 200)).gurtmass)
+        self.assertEqual(3060, Package((1600, 250, 480)).gurtmass)
+		</code></pre>
+    </div>
+	
+	<p><strong>test_mul - Test multiplication</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>def test_mul(self):
+        self.assertEqual(Package((200, 200, 200)), Package((100, 200, 200)) * 2)
+		</code></pre>
+    </div>
+	
+	<p><strong>$method test_sort - Test multiplication</strong></p>
+		<div class="example">
+        <p>Code:</p>
+        <pre><code>def test_sort(self):
+        data = [Package((1600, 490, 480)), Package((1600, 470, 480)), Package((1600, 480, 480))]
+        data.sort()
+        self.assertEqual(data,
+                         [Package((1600, 470, 480)), Package((1600, 480, 480)),
+                          Package((1600, 490, 480))])
+		</code></pre>
+    </div>
+	
+	<h2>Main Method</h2>
+	<code>if __name__ == '__main__':</code>
+	<div class="example">
+        <p>Code:</p>
+        <pre><code>    factor = 0
+    while True:
+        factor += 1
+        single = Package((750, 240, 220), 7400)
+        multi = single * factor
+        if multi.weight > 31000 or multi.gurtmass > 3000:
+            multi = single * (factor - 1)
+            #print factor - 1, multi, multi.gurtmass
+            break
+
+    doctest.testmod()
+    unittest.main()
+</code></pre>
+    </div>
+	
+	 
